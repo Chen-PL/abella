@@ -51,6 +51,8 @@ type sequent = {
   mutable next_subgoal_id : int ;
 }
 
+let undo_enabled = ref true
+
 (* The vars = sq.vars is superfluous, but forces the copy *)
 let cp_sequent sq = {sq with vars = sq.vars}
 let assign_sequent sq1 sq2 =

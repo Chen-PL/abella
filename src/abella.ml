@@ -485,6 +485,12 @@ let set k v =
                     ~key:"types"
                     ~expected:"'on' or 'off'"
 
+  | "undo", Str "on" -> Prover.undo_enabled := true
+  | "undo", Str "off" -> Prover.undo_enabled := false
+  | "undo", _ -> set_fail v
+                    ~key:"undo"
+                    ~expected:"'on' or 'off'"
+
   | "search_depth", Int d when d >= 0 -> Prover.search_depth := d
   | "search_depth", _ -> set_fail v
                            ~key:"search_depth"
@@ -526,7 +532,7 @@ let print_clauses () =
   List.iter print_clause !Prover.clauses
 
 let rec process1 () =
-  State.Undo.push () ;
+  if !Prover.undo_enabled then State.Undo.push () ;
   try begin match !current_state with
     | Process_top ->
         process_top1 ()
