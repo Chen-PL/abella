@@ -598,7 +598,7 @@ let rec process1 () =
       interactive_or_exit ()
 
 and process_proof1 name =
-  if not !suppress_proof_state_display && not !Prover.undo_enabled then begin
+  if not !suppress_proof_state_display && !Prover.undo_enabled then begin
     Prover.display !out ;
   end ;
   suppress_proof_state_display := false ;
