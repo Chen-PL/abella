@@ -245,7 +245,17 @@ let ensure_valid_import imp_spec_sign imp_spec_clauses imp_predicates =
 
 let imported = State.rref []
 
+let rmSlashes str =
+  let rmedStr = ref "" in
+  let slashCnt = ref 0 in
+  String.iter (fun c ->
+      if c = '\\' then incr slashCnt else slashCnt := 0;
+      if !slashCnt < 4 then rmedStr := !rmedStr ^ String.make 1 c
+    ) str;
+  !rmedStr
+
 let maybe_make_importable ?(force=false) root =
+  let root = rmSlashes root in
   let thc = root ^ ".thc" in
   let thm = root ^ ".thm" in
   let force = force || begin
