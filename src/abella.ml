@@ -250,7 +250,7 @@ let rmSlashes str =
   let slashCnt = ref 0 in
   String.iter (fun c ->
       if c = '\\' then incr slashCnt else slashCnt := 0;
-      if !slashCnt < 4 then rmedStr := !rmedStr ^ String.make 1 c
+      if !slashCnt <= 4 then rmedStr := !rmedStr ^ String.make 1 c
     ) str;
   !rmedStr
 
