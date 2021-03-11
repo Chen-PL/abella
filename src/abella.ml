@@ -28,6 +28,7 @@ open Unifyty
 open Extensions
 open Printf
 open Accumulate
+open Prover
 
 let load_path = State.rref (Sys.getcwd ())
 
@@ -618,7 +619,40 @@ and process_proof1 name =
     let pre, post = if !annotate then "<b>", "</b>" else "", "" in
     fprintf !out "%s%s.%s\n%!" pre (command_to_string input) post
   end ;
-  begin match input with
+  match input with
+  | Abort                  -> raise (Prover.End_proof `aborted)
+  | Undo
+  | Common(Back)           ->
+      if !interactive then State.Undo.back 2
+      else failwith "Cannot use interactive commands in non-interactive mode"
+  | Common(Reset)          ->
+      if !interactive then State.Undo.reset ()
+      else failwith "Cannot use interactive commands in non-interactive mode"
+  | Common(Set(k, v))      -> set k v
+  | Common(Show nm)        ->
+      Prover.show nm ;
+      fprintf !out "\n%!" ;
+      suppress_proof_state_display := true
+  | Common(Quit)           -> raise End_of_file
+  | _                      -> process_proof_command input
+
+and process_proof_command input =
+  match input with
+  | Solve(cmd)                    ->
+      process_proof_command cmd ;
+      failwith "Goal not solved"
+  | Try(cmd)                      ->
+      let state = snapshot_state () in
+      begin try process_proof_command cmd with
+        | End_proof reason   -> raise (End_proof reason)
+        | _e                 -> recover_state state
+      end
+  | SemiColon(cmd1, cmd2)         -> begin
+        Printf.fprintf !out "SEMI: %s\n%!" (command_to_string input) ;
+        add_pending_command cmd2 ;
+        process_proof_command cmd1 ;
+        process_pending_commands ()
+      end
   | Induction(args, hn)           -> Prover.induction ?name:hn args
   | CoInduction hn                -> Prover.coinduction ?name:hn ()
   | Apply(depth, h, args, ws, hn, applys) -> Prover.apply ~applys ?depth ?name:hn h args ws ~term_witness
@@ -657,21 +691,7 @@ and process_proof1 name =
   | Unfold (cs, ss)        -> Prover.unfold cs ss
   | Intros hs              -> Prover.intros hs
   | Skip                   -> Prover.skip ()
-  | Abort                  -> raise (Prover.End_proof `aborted)
-  | Undo
-  | Common(Back)           ->
-      if !interactive then State.Undo.back 2
-      else failwith "Cannot use interactive commands in non-interactive mode"
-  | Common(Reset)          ->
-      if !interactive then State.Undo.reset ()
-      else failwith "Cannot use interactive commands in non-interactive mode"
-  | Common(Set(k, v))      -> set k v
-  | Common(Show nm)        ->
-      Prover.show nm ;
-      fprintf !out "\n%!" ;
-      suppress_proof_state_display := true
-  | Common(Quit)           -> raise End_of_file
-  end
+  | _                      -> failwith ("Invalid proof command: " ^ command_to_string input)
 
 and process_top1 () =
   fprintf !out "Abella < %!" ;
@@ -745,6 +765,9 @@ and process_top1 () =
   end ;
   if !interactive then flush stdout ;
   fprintf !out "\n%!"
+
+(* Dirty workaround that resolves the dependency issue *)
+let _ = Prover.process_proof_command := process_proof_command;;
 
 (* Command line and startup *)
 
