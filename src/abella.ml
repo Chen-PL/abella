@@ -629,6 +629,10 @@ and process_proof1 name =
       if !interactive then State.Undo.reset ()
       else failwith "Cannot use interactive commands in non-interactive mode"
   | Common(Set(k, v))      -> set k v
+  | Common(ListTheorems)   ->
+      fprintf !out "ListTheorems:[%s]" (Prover.listTheorems ()) ;
+      fprintf !out "\n%!" ;
+      suppress_proof_state_display := true
   | Common(Show nm)        ->
       Prover.show nm ;
       fprintf !out "\n%!" ;
@@ -737,6 +741,7 @@ and process_top1 () =
       if !interactive then State.Undo.reset ()
       else failwith "Cannot use interactive commands in non-interactive mode"
   | TopCommon(Set(k, v)) -> set k v
+  | TopCommon(ListTheorems) -> fprintf !out "ListTheorems:[%s]" (Prover.listTheorems ())
   | TopCommon(Show(n)) -> Prover.show n
   | TopCommon(Quit) -> raise End_of_file
   | Import(filename, withs) ->

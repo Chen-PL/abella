@@ -30,6 +30,7 @@
     "Define",        DEFINE ;
     "Import",        IMPORT ;
     "Kind",          KKIND ;
+    "ListTheorems",  LIST_THEOREMS ;
     "Query",         QUERY ;
     "Quit",          QUIT ;
     "Set",           SET ;

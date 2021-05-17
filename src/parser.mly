@@ -111,7 +111,7 @@
 %token IND INST APPLY APPLYS CASE FROM SEARCH TO ON WITH INTROS CUT ASSERT CLAUSEEQ
 %token SKIP UNDO ABORT COIND LEFT RIGHT MONOTONE IMPORT BY ASYNC
 %token SPLIT SPLITSTAR UNFOLD ALL KEEP CLEAR SPECIFICATION SEMICOLON TRY SOLVE
-%token THEOREM DEFINE PLUS CODEFINE SET ABBREV UNABBREV QUERY SHOW
+%token THEOREM DEFINE PLUS CODEFINE SET ABBREV UNABBREV QUERY LIST_THEOREMS SHOW
 %token PERMUTE BACKCHAIN QUIT UNDERSCORE AS SSPLIT RENAME
 %token BACK RESET
 %token COLON RARROW FORALL NABLA EXISTS WITNESS STAR AT HASH OR AND
@@ -202,6 +202,7 @@ id:
   | RIGHT         { "right" }
   | SEARCH        { "search" }
   | SET           { "Set" }
+  | LIST_THEOREMS { "ListTheorems" }
   | SHOW          { "Show" }
   | SKIP          { "skip" }
   | SOLVE         { "solve" }
@@ -793,6 +794,8 @@ common_command:
     { Types.Set($2, Types.Int $3) }
   | SET id QSTRING DOT
     { Types.Set($2, Types.QStr $3) }
+  | LIST_THEOREMS DOT
+    { Types.ListTheorems }
   | SHOW loc_id DOT
     { Types.Show(deloc_id $2) }
   | QUIT DOT

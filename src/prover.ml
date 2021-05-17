@@ -630,8 +630,13 @@ let is_hyp name =
 
 let get_generic_lemma name =
   try H.find lemmas name with
+  | Not_found -> failwithf "Could not find theorem/hypothesis named %S" name
+
+let get_generic_lemma_or_hyp name =
+  try ("Theorem", H.find lemmas name) with
   | Not_found ->
-      failwithf "Could not find theorem named %S" name
+    try ("Hypothesis", ([], get_hyp name)) with
+    | Not_found -> failwithf "Could not find theorem/hypothesis named %S" name
 
 let get_lemma ?(tys:ty list = []) name =
   let (argtys, bod) = H.find lemmas name in
@@ -680,13 +685,19 @@ let next_subgoal () =
 
 (* Show *)
 
-let print_theorem name (tys, thm) =
+let print_theorem ?(typeOfStmt:id="Theorem") name (tys, thm) =
   let ff = Format.formatter_of_out_channel !Checks.out in
-  Format.fprintf ff "@[<hv2>Theorem %s%s :@ %a@].@."
-    name (gen_to_string tys) format_metaterm thm
+  Format.fprintf ff "@[<hv2>%s %s%s :@ %a@].@."
+  typeOfStmt name (gen_to_string tys) format_metaterm thm
 
 let show name =
-  print_theorem name (get_generic_lemma name)
+  let (typeOfStmt, stmt) = get_generic_lemma_or_hyp name in
+  print_theorem name stmt ~typeOfStmt:typeOfStmt
+
+let listTheorems () =
+  let hyp_names = List.map (fun h -> h.id) sequent.hyps in
+  let lemma_names = List.of_seq (H.to_seq_keys lemmas) in
+  String.concat "," (List.append hyp_names lemma_names)
 
 (* Object level instantiation *)
 

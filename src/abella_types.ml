@@ -60,6 +60,7 @@ type common_command =
   | Back | Reset
   | Set of string * set_value
   | Show of string
+  | ListTheorems
   | Quit
 
 type top_command =
@@ -241,6 +242,8 @@ let common_command_to_string cc =
       sprintf "Set %s %s" k (set_value_to_string v)
   | Show nm ->
       sprintf "Show %s" nm
+  | ListTheorems ->
+      sprintf "ListTheorems"
   | Quit ->
       sprintf "Quit"
 
