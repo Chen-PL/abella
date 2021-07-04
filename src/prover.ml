@@ -36,12 +36,6 @@ let lemmas : (string, string list * metaterm) H.t = State.table ()
 type subgoal = unit -> unit
 let subgoals : subgoal list ref = State.rref []
 
-type hyp = {
-  id : id ;
-  term : metaterm ;
-  abbrev : string option ;
-}
-
 type sequent = {
   mutable vars : (id * term) list ;
   mutable hyps : hyp list ;
@@ -868,14 +862,13 @@ let partition_obligations ?depth obligations =
           | Some w -> Either.Right (g, w))
        obligations)
 
-let apply ?applys:(applys=false) ?depth ?name ?(term_witness=ignore) h args ws =
+let apply ?applys:(applys=false) ?depth ?name ?(term_witness=ignore) h arg_clearables ws =
   (* (if applys = true then failwith "applys not implemented"); *)
   let stmt = get_stmt_clearly h in
-  let args = List.map get_arg_clearly args in
-  let hyp_tms = List.map (fun h -> h.term) sequent.hyps in
+  let args = List.map get_arg_clearly arg_clearables in
   let () = List.iter (Option.map_default ensure_no_restrictions ()) args in
   let ws = type_apply_withs stmt ws in
-  let result, obligations = Tactics.apply_with stmt args ws hyp_tms ~applys in
+  let result, obligations = Tactics.apply_with stmt args ws arg_clearables sequent.hyps ~applys in
   let remaining_obligations, term_witnesses =
     partition_obligations ?depth obligations
   in

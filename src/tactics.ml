@@ -27,6 +27,12 @@ open Unifyty
 
 open Extensions
 
+type hyp = {
+  id : id ;
+  term : metaterm ;
+  abbrev : string option ;
+}
+
 (* Variable naming utilities *)
 
 let is_uninstantiated (x, vtm) =
@@ -1290,7 +1296,7 @@ let rec compatible_metaterm formal actual = match formal, actual with
   | _ -> false
 
 (* naive: match first *)
-let genCompatibleArgs term args hyps =
+let genCompatibleArgs term args args_clearables (hyps : hyp list) =
   let tmBody = match term with
     | Binding(Forall, _, Binding(Nabla, _, body)) -> body
     | Binding(Forall, _, body) -> body
@@ -1307,10 +1313,11 @@ let genCompatibleArgs term args hyps =
         Printf.printf " %s {%s} ~%B %s {%s}\n" (metaterm_to_string tm) (head2str tm) (compatible_metaterm tm a) (metaterm_to_string a) (head2str a)
     end terms args ;*)
   let argArr = Array.make (List.length terms) None in
+  let clearableArr = Array.make (List.length terms) (Keep ("_", [])) in
   let wildcardCounter = ref 0 in
   (* interpret "_" as a indicator to skip match: `applys X to _ H` will match H with its second compatible term *)
   List.iter (function
-      | Some a ->
+      | (Some a, clearable) ->
         let toSkip = !wildcardCounter in
         wildcardCounter := 0;
         let skipCnt = ref 0 in
@@ -1326,20 +1333,28 @@ let genCompatibleArgs term args hyps =
           let skipStr = if toSkip = 0 then "" else Printf.sprintf " (skip %d/%d)" toSkip !skipCnt in
           failwithf "[%s] is not compatible with any subgoal%s" (metaterm_to_string a) skipStr
         else
-          argArr.(!pa) <- Some a
-      | None -> incr wildcardCounter
-    ) args;
+          argArr.(!pa) <- Some a;
+          clearableArr.(!pa) <- clearable
+      | (None, _) -> incr wildcardCounter
+    ) (List.combine args args_clearables);
   (* Printf.printf "applys get %d args and produces %d terms\n" (List.length args) (Array.length argArr); *)
   (* Fix induction hyps *)
   List.iteri (fun i t -> if argArr.(i) = None then
     match t with
       | Pred (_, r) when r <> Irrelevant ->
         List.iter (fun hyp ->
-          if compatible_metaterm t hyp then
-            argArr.(i) <- Some hyp
+          if compatible_metaterm t hyp.term then
+            begin
+            argArr.(i) <- Some hyp.term;
+            clearableArr.(i) <- Keep (hyp.id, []);
+            (* Printf.printf "[[set %d %s/%s]]" i (metaterm_to_string hyp.term) hyp.id; *)
+            end
         ) hyps
       | _ -> ()
   ) terms;
+  (* Printf.printf "[[applys %s]]" (String.concat " " (List.map (fun hyp -> hyp.id ^ ": " ^ metaterm_to_string hyp.term) hyps)); *)
+  Printf.printf "[[applys %s]]" (String.concat " " (clearableArr |> Array.map clearable_to_string |> Array.to_list));
+  (* Printf.printf "[[applys %s]]" (String.concat " " (argArr |> Array.map (function | None -> "_"; | Some term -> metaterm_to_string term) |> Array.to_list)); *)
   Array.to_list argArr
 
 let apply_arrow term args =
@@ -1519,8 +1534,8 @@ let rec instantiate_withs term withs =
       (normalize (nabla binders' body), nominals @ used_nominals)
   | _ -> (term, [])
 
-let apply_with ?applys:(applys=false) term args withs hyps =
-  let args = if not applys then args else genCompatibleArgs term args hyps in
+let apply_with ?applys:(applys=false) term args withs args_clearables hyps =
+  let args = if not applys then args else genCompatibleArgs term args args_clearables hyps in
   if args = [] && withs = [] then
     (term, [])
   else
